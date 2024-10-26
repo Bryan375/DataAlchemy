@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./data_alchemy_be
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - data_alchemy_network
+
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    networks:
+      - data_alchemy_network
+
+volumes:
+  postgres_data:
+
+networks:
+  data_alchemy_network:
+    driver: bridge
