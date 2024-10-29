@@ -2,18 +2,44 @@ version: '3.8'
 
 services:
   backend:
-    build: ./data_alchemy_be
-    command: python manage.py runserver 0.0.0.0:8000
+    build:
+      context: ./data_alchemy_be
+      dockerfile: Dockerfile
     volumes:
-      - .:/code
+      - ./data_alchemy_be:/code
     ports:
       - "8000:8000"
     env_file:
       - .env
     depends_on:
       - db
+      - redis
     networks:
-      - data_alchemy_network
+      - data_alchemy
+    command: python manage.py runserver 0.0.0.0:8000
+
+  celery_worker:
+    build:
+      context: ./data_alchemy_be
+      dockerfile: Dockerfile
+    command: celery -A data_alchemy_be worker --loglevel=info --concurrency=2 -Q default,data_processing,exports3
+    volumes:
+      - ./data_alchemy_be:/code
+      - ./data_alchemy_be/media:/code/media
+      - ./data_alchemy_be/exports:/code/exports
+    environment:
+      - PYTHONPATH=/code
+      - DJANGO_SETTINGS_MODULE=data_alchemy_be.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env
+    depends_on:
+      - backend
+      - redis
+      - db
+    networks:
+      - data_alchemy
 
   db:
     image: postgres:13-alpine
@@ -23,16 +49,25 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-    env_file:
-      - .env
     ports:
       - "5432:5432"
     networks:
-      - data_alchemy_network
+      - data_alchemy
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+        - data_alchemy
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
-  data_alchemy_network:
+  data_alchemy:
     driver: bridge
