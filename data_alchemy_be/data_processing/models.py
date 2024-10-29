@@ -1,9 +1,6 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.core.validators import FileExtensionValidator
 import uuid
-
-User = get_user_model()
 
 
 class Dataset(models.Model):
@@ -22,13 +19,6 @@ class Dataset(models.Model):
         default=uuid.uuid4,
         editable=False,
         help_text="Unique identifier for the dataset"
-    )
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='datasets',
-        help_text="User who uploaded the dataset"
     )
 
     name = models.CharField(
@@ -101,17 +91,6 @@ class Dataset(models.Model):
     def __str__(self):
         return f"{self.name} ({self.status})"
 
-    @property
-    def file_size(self):
-        """Return human-readable file size."""
-        if self.file:
-            size = self.file.size
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size < 1024:
-                    return f"{size:.2f} {unit}"
-                size /= 1024
-            return f"{size:.2f} TB"
-        return "0 B"
 
 
 class Column(models.Model):
@@ -242,13 +221,11 @@ class ProcessingJob(models.Model):
 
     celery_task_id = models.CharField(
         max_length=255,
-        null=True,
         blank=True,
         help_text="Celery task ID for tracking"
     )
 
     error_message = models.TextField(
-        null=True,
         blank=True,
         help_text="Error message if job failed"
     )
