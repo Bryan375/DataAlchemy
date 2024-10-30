@@ -7,90 +7,20 @@ class Dataset(models.Model):
     """
     Model to store uploaded datasets and their processing status.
     """
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('PROCESSING', 'Processing'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
-    ]
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        help_text="Unique identifier for the dataset"
-    )
-
-    name = models.CharField(
-        max_length=255,
-        help_text="Name of the dataset"
-    )
-
-    description = models.TextField(
-        blank=True,
-        help_text="Optional description of the dataset"
-    )
-
-    file = models.FileField(
-        upload_to='datasets/%Y/%m/%d/',
-        validators=[FileExtensionValidator(allowed_extensions=['csv', 'xlsx', 'xls'])],
-        help_text="The uploaded dataset file"
-    )
-
-    file_type = models.CharField(
-        max_length=10,
-        choices=[('CSV', 'CSV'), ('EXCEL', 'Excel')],
-        help_text="Type of the uploaded file"
-    )
-
-    rows_count = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Total number of rows in the dataset"
-    )
-
-    columns_count = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Total number of columns in the dataset"
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='PENDING',
-        help_text="Current processing status of the dataset"
-    )
-
-    error_message = models.TextField(
-        blank=True,
-        help_text="Error message if processing failed"
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When the dataset was uploaded"
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        help_text="When the dataset was last updated"
-    )
-
-    processed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the dataset processing was completed"
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    file = models.FileField(validators=[FileExtensionValidator(allowed_extensions=['csv', 'xlsx', 'xls'])])
+    file_type = models.CharField(max_length=10, choices=[('CSV', 'CSV'), ('EXCEL', 'Excel')])
+    rows_count = models.IntegerField(null=True, blank=True)
+    columns_count = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Dataset'
         verbose_name_plural = 'Datasets'
-
-    def __str__(self):
-        return f"{self.name} ({self.status})"
-
 
 
 class Column(models.Model):
@@ -107,63 +37,16 @@ class Column(models.Model):
         ('CATEGORY', 'Category'),
     ]
 
-    dataset = models.ForeignKey(
-        Dataset,
-        on_delete=models.CASCADE,
-        related_name='columns',
-        help_text="Dataset this column belongs to"
-    )
-
-    name = models.CharField(
-        max_length=255,
-        help_text="Current name of the column"
-    )
-
-    original_name = models.CharField(
-        max_length=255,
-        help_text="Original name of the column in the file"
-    )
-
-    position = models.IntegerField(
-        help_text="Position of the column in the dataset"
-    )
-
-    inferred_type = models.CharField(
-        max_length=20,
-        choices=DATA_TYPES,
-        help_text="Data type inferred by the system"
-    )
-
-    current_type = models.CharField(
-        max_length=20,
-        choices=DATA_TYPES,
-        help_text="Current data type (may be modified by user)"
-    )
-
-    nullable = models.BooleanField(
-        default=True,
-        help_text="Whether the column contains null values"
-    )
-
-    unique_values_count = models.IntegerField(
-        default=0,
-        help_text="Number of unique values in the column"
-    )
-
-    null_count = models.IntegerField(
-        default=0,
-        help_text="Number of null values in the column"
-    )
-
-    sample_values = models.JSONField(
-        default=list,
-        help_text="Sample values from the column"
-    )
-
-    statistics = models.JSONField(
-        default=dict,
-        help_text="Statistical information about the column"
-    )
+    dataset = models.ForeignKey(Dataset,on_delete=models.CASCADE, related_name='columns')
+    name = models.CharField(max_length=255)
+    original_name = models.CharField(max_length=255)
+    position = models.IntegerField()
+    inferred_type = models.CharField(max_length=20, choices=DATA_TYPES)
+    current_type = models.CharField(max_length=20, choices=DATA_TYPES)
+    nullable = models.BooleanField(default=True)
+    unique_values_count = models.IntegerField(default=0)
+    null_count = models.IntegerField(default=0)
+    sample_values = models.JSONField(default=list)
 
     class Meta:
         ordering = ['position']
@@ -192,66 +75,16 @@ class ProcessingJob(models.Model):
         ('FAILED', 'Failed'),
     ]
 
-    id = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid4,
-        editable=False,
-        help_text="Unique identifier for the job"
-    )
-
-    dataset = models.ForeignKey(
-        Dataset,
-        on_delete=models.CASCADE,
-        related_name='jobs',
-        help_text="Dataset being processed"
-    )
-
-    job_type = models.CharField(
-        max_length=20,
-        choices=JOB_TYPES,
-        help_text="Type of processing job"
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='QUEUED',
-        help_text="Current status of the job"
-    )
-
-    celery_task_id = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Celery task ID for tracking"
-    )
-
-    error_message = models.TextField(
-        blank=True,
-        help_text="Error message if job failed"
-    )
-
-    result = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Job result data"
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text="When the job was created"
-    )
-
-    started_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the job started processing"
-    )
-
-    completed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the job completed or failed"
-    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, related_name='jobs')
+    job_type = models.CharField(max_length=20, choices=JOB_TYPES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='QUEUED')
+    celery_task_id = models.CharField(max_length=255, blank=True)
+    error_message = models.TextField(blank=True)
+    result = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -260,10 +93,3 @@ class ProcessingJob(models.Model):
 
     def __str__(self):
         return f"{self.dataset.name} - {self.job_type} ({self.status})"
-
-    @property
-    def duration(self):
-        """Calculate job duration if completed."""
-        if self.started_at and self.completed_at:
-            return (self.completed_at - self.started_at).total_seconds()
-        return None
