@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  frontend:
+    build:
+      context: ./data_alchemy_fe
+      dockerfile: Dockerfile
+    volumes:
+      - ./data_alchemy_fe:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - data_alchemy
   backend:
     build:
       context: ./data_alchemy_be
