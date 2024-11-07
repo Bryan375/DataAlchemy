@@ -1,5 +1,12 @@
 import { ChangeEvent } from "react"
 
+// Types
+export type DataType = 'int64' | 'float64' | 'object' | 'datetime64' | 'bool' | 'category';
+export type DataPreviewTableProps = DataState
+export type PreviewData = { [key: string]: string | number | boolean | null }
+
+
+// Interfaces
 export interface DataInferenceFileUploaderProps {
     file: File | null
     isLoading: boolean
@@ -9,7 +16,7 @@ export interface DataInferenceFileUploaderProps {
 
 export interface DataState {
     columnDetails: Column[]
-    previewData: { [key: string]: string | number | boolean | Date | null }[];
+    previewData: PreviewData[]
 }
 
 export interface Column {
@@ -37,5 +44,24 @@ export interface DataInferenceTemplateProps {
 }
 
 export interface ProcessingProgressProps {
-    progress: number;
+    progress: number
+}
+
+export interface DataTypesTableProps {
+    columnDetails: Column[]
+    onTypeChange: (columnName: string, newType: string) => void
+    onApplyChanges: () => void
+    previewChanges: PreviewChange | null
+}
+
+export interface TypeChangeDialogProps {
+    column: Column
+    currentType: string
+    onTypeChange: (columnName: string, newType: string) => void
+    previewChanges: PreviewChange | null
+    onApplyChanges: () => void
+}
+
+export interface DataTypeSelectorProps {
+    onTypeChange: (value: string) => void
 }
