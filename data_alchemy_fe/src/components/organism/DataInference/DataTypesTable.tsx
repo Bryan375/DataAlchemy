@@ -1,9 +1,10 @@
 import {FC} from "react";
-import {Column, DataTypesTableProps} from "@/types/DataInference/dataInference.ts";
+import {DataTypesTableProps} from "@/types/DataInference/dataInference.types.ts";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
 import {TypeChangeDialog} from "@/components/organism/DataInference/TypeChangeDialog.tsx";
+import {Column} from "@/models/DataInference/dataInference.models.ts.tsx";
 
-export const DataTypesTable: FC<DataTypesTableProps> = ({columnDetails, onTypeChange, onApplyChanges, previewChanges}) => {
+export const DataTypesTable: FC<DataTypesTableProps> = ({columnDetails, onTypeChange, onApplyChanges}) => {
     return (
         <div className={'rounded-md border border-blue-200 overflow-hidden'}>
             <Table>
@@ -20,7 +21,7 @@ export const DataTypesTable: FC<DataTypesTableProps> = ({columnDetails, onTypeCh
                             <TableCell className="font-medium text-blue-800">{column.name}</TableCell>
                             <TableCell className="text-gray-600">{column.inferredType}</TableCell>
                             <TableCell>
-                                <TypeChangeDialog column={column} currentType={column.inferredType} onTypeChange={onTypeChange} onApplyChanges={onApplyChanges} previewChanges={previewChanges}/>
+                                <TypeChangeDialog column={column} currentType={column.inferredType} onTypeChange={onTypeChange} onApplyChanges={onApplyChanges}/>
                             </TableCell>
                         </TableRow>
                     ))}

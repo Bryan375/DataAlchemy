@@ -1,5 +1,5 @@
 import {FC} from "react";
-import {DataInferenceFileUploaderProps} from "@/types/DataInference/dataInference.ts";
+import {DataInferenceFileUploaderProps} from "@/types/DataInference/dataInference.types.ts";
 import {Input} from "@/components/ui/input.tsx";
 import {Button} from "@/components/ui/button.tsx";
 import {FileUp, RefreshCw} from "lucide-react";
@@ -12,7 +12,7 @@ export const FileUploader: FC<DataInferenceFileUploaderProps> = ({onFileSelect, 
                 onChange={onFileSelect}
                 disabled={isLoading}
                 accept={'.csv, .xlsx, .xls'}
-                className={'flex-grow'}
+                className={'flex-grow items-center'}
             />
             <Button
                 onClick={OnSubmit}

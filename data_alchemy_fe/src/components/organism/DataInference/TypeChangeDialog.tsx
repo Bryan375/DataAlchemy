@@ -1,5 +1,5 @@
-import {TypeChangeDialogProps} from "@/types/DataInference/dataInference.ts";
-import {FC} from "react";
+import {TypeChangeDialogProps} from "@/types/DataInference/dataInference.types.ts";
+import {FC, useState} from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,17 +9,31 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog.tsx";
 import {Button} from "@/components/ui/button.tsx";
-import {DataPreviewTable} from "@/components/organism/DataInference/DataPreviewTable.tsx";
 import {DataTypeSelector} from "@/components/molecules/DataInference/DataTypeSelector.tsx";
+import {Column} from "@/models/DataInference/dataInference.models.ts.tsx";
 
 
-export const TypeChangeDialog: FC<TypeChangeDialogProps> = ({ column, currentType, onTypeChange, previewChanges, onApplyChanges }) => {
-    const handleTypeChange = (columnName: string) => (newType: string) => {
-        onTypeChange(columnName, newType);
+export const TypeChangeDialog: FC<TypeChangeDialogProps> = ({ column, currentType, onTypeChange, onApplyChanges }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleTypeChange = (column: Column) => (newType: string | null) => {
+        onTypeChange(column, newType);
     };
 
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (!open) {
+            onTypeChange(column, null)
+        }
+    }
+
+    const handleApplyChanges = (): void => {
+        onApplyChanges();
+        setIsOpen(false);
+    }
+
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="outline" className={'border-blue-200 text-blue-600 hover:bg-blue-50'}>
                     {currentType}
@@ -29,21 +43,12 @@ export const TypeChangeDialog: FC<TypeChangeDialogProps> = ({ column, currentTyp
                 <DialogHeader>
                     <DialogTitle className={'text-blue-600'}>Change Data Type</DialogTitle>
                     <DialogDescription>
-                        Select a new data type for the column
+                        Select a new data type for the column {column.name}
                     </DialogDescription>
                 </DialogHeader>
-                <DataTypeSelector onTypeChange={handleTypeChange} />
-                {previewChanges && (
-                    <div className={'mt-4'}>
-                        <h4 className={'mb-2 font-semibold text-blue-600'}>Preview of changes:</h4>
-                        <DataPreviewTable
-                            columnDetails={[{name: column.name, inferredType: column.inferredType, userType: column.userType}]}
-                            previewData={[{previewData: previewChanges.newType}]}
-                        />
-                    </div>
-                )}
+                <DataTypeSelector onTypeChange={handleTypeChange(column)} />
                 <DialogFooter>
-                    <Button onClick={onApplyChanges} className={'bg-blue-600 hover:bg-blue-700 text-white'}>
+                    <Button onClick={handleApplyChanges} className={'bg-blue-600 hover:bg-blue-700 text-white'}>
                         Apply Changes
                     </Button>
                 </DialogFooter>

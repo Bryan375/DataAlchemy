@@ -1,25 +1,26 @@
 import {FC} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
-import {DataInferenceTemplateProps} from "@/types/DataInference/dataInference.ts";
+import {DataInferenceTemplateProps} from "@/types/DataInference/dataInference.types.ts";
 import {FileUploader} from "@/components/molecules/DataInference/FileUploader.tsx";
 import {ProcessingProgress} from "@/components/molecules/DataInference/ProcessingProgress.tsx";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert.tsx";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
-import {DataPreviewTable} from "@/components/organism/DataInference/DataPreviewTable.tsx";
 import {DataTypesTable} from "@/components/organism/DataInference/DataTypesTable.tsx";
+import {DataTable} from "@/components/organism/DataInference/DataTable.tsx";
 
 
 export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
-  file,
-  isLoading,
-  progress,
-  data,
-  previewChanges,
-  onFileSelect,
-  onSubmit,
-  onTypeChange,
-  onApplyChanges,
-  onDownload
+    file,
+    isLoading,
+    progress,
+    data,
+    onFileSelect,
+    onSubmit,
+    onTypeChange,
+    onApplyChanges,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage
 }) => {
 
     return (<div className={'min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 py-8'}>
@@ -49,26 +50,24 @@ export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
                             <Tabs defaultValue="types" className="mb-6">
                                 <TabsList className="bg-blue-100 p-1 rounded-lg">
                                     <TabsTrigger value="types">Inferred Types</TabsTrigger>
-                                    <TabsTrigger value="preview">Data Preview</TabsTrigger>
+                                    <TabsTrigger value="data">Data</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="types">
-                                    {/*<DataPreviewTable*/}
-                                    {/*    columnDetails={data.columnDetails}*/}
-                                    {/*    previewData={data.previewData}*/}
-                                    {/*/>*/}
                                     <DataTypesTable
-                                        columnDetails={data.columnDetails}
+                                        columnDetails={data.column}
                                         onTypeChange={onTypeChange}
                                         onApplyChanges={onApplyChanges}
-                                        previewChanges={previewChanges}
                                     />
                                 </TabsContent>
 
-                                <TabsContent value="preview">
-                                    <DataPreviewTable
-                                        columnDetails={data.columnDetails}
-                                        previewData={data.previewData}
+                                <TabsContent value="data">
+                                    <DataTable
+                                        data={data.dataRows}
+                                        columns={data.column}
+                                        currentPage={currentPage}
+                                        itemsPerPage={itemsPerPage}
+                                        onPageChange={setCurrentPage}
                                     />
                                 </TabsContent>
                             </Tabs>
