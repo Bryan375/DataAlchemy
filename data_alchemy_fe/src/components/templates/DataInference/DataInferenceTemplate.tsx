@@ -65,6 +65,7 @@ export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
                                     <DataTable
                                         data={data.dataRows}
                                         columns={data.column}
+                                        pagination={data.pagination}
                                         currentPage={currentPage}
                                         itemsPerPage={itemsPerPage}
                                         onPageChange={setCurrentPage}
@@ -73,11 +74,6 @@ export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
                             </Tabs>
                         </>
                     )}
-
-                    {/* Alert */}
-                    {/* Table for infer and preview data    */}
-                    {/* Download button*/}
-
                 </CardContent>
             </Card>
         </div>

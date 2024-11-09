@@ -4,7 +4,7 @@ import {DataTableProps} from "@/types/DataInference/dataInference.types.ts";
 import {Pagination} from "@/components/molecules/DataInference/Pagination.tsx";
 
 
-export const DataTable: FC<DataTableProps> = ({ data, columns, currentPage, itemsPerPage, onPageChange }) => {
+export const DataTable: FC<DataTableProps> = ({ data, columns, pagination, currentPage, itemsPerPage, onPageChange }) => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
@@ -33,7 +33,7 @@ export const DataTable: FC<DataTableProps> = ({ data, columns, currentPage, item
             </div>
             <Pagination
                 currentPage={currentPage}
-                totalPages={Math.ceil(data.length / itemsPerPage)}
+                totalPages={pagination.totalPages}
                 onPageChange={onPageChange}
             />
         </>

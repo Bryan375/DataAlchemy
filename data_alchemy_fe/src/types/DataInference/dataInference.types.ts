@@ -1,15 +1,16 @@
 import { ChangeEvent } from "react"
 import {Column, DataRow, Data} from "@/models/DataInference/dataInference.models.ts.tsx";
+import {PaginationMeta} from "@/types/common.types.ts";
 
 export interface DataInferenceFileUploaderProps {
-    file: File | null
+    file: File | undefined
     isLoading: boolean
     onFileSelect: (event: ChangeEvent<HTMLInputElement>) => void
     OnSubmit: () => void
 }
 
 export interface DataInferenceTemplateProps {
-    file: File | null
+    file: File | undefined
     isLoading: boolean
     progress: number
     data: Data | null
@@ -46,6 +47,7 @@ export interface DataTypeSelectorProps {
 export interface DataTableProps {
     data: DataRow[];
     columns: Column[];
+    pagination: PaginationMeta;
     currentPage: number;
     itemsPerPage: number;
     onPageChange: (page: number) => void;
