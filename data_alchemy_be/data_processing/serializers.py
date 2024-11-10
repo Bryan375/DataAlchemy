@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Dataset, Column, ProcessingJob
+from .models import Dataset, Column, ProcessingJob, DatasetRow
 
 
 class ColumnSerializer(serializers.ModelSerializer):
@@ -110,32 +110,35 @@ class DatasetResponseSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for Dataset responses.
     """
-    columns = ColumnSerializer(many=True, read_only=True)
-    latest_job = serializers.SerializerMethodField()
-    file_size = serializers.SerializerMethodField()
 
     class Meta:
         model = Dataset
         fields = [
-            'id', 'name', 'file', 'file_type', 'created_at',
-            'columns', 'latest_job', 'file_size'
+            'id', 'name', 'file', 'file_type', 'created_at'
         ]
         read_only_fields = fields
 
-    def get_latest_job(self, obj):
-        job = obj.jobs.first()
-        if job:
-            return ProcessingJobSerializer(job).data
-        return None
+class DatasetColumnSerializer(serializers.ModelSerializer):
+    """Serializer for column information in dataset rows view."""
+    columnIndex = serializers.IntegerField(source='position')
+    inferredType = serializers.CharField(source='inferred_type')
+    customUserType = serializers.CharField(source='current_type')
 
-    def get_file_size(self, obj):
-        """Return human-readable file size."""
-        try:
-            size_bytes = obj.file.size
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size_bytes < 1024:
-                    return f"{size_bytes:.2f} {unit}"
-                size_bytes /= 1024
-            return f"{size_bytes:.2f} TB"
-        except:
-            return "0 B"
+    class Meta:
+        model = Column
+        fields = ['id', 'name', 'columnIndex', 'inferredType', 'customUserType']
+
+
+class DatasetRowsSerializer(serializers.ModelSerializer):
+    """Serializer for dataset rows with values."""
+    values = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DatasetRow
+        fields = ['row_index', 'values']
+
+    def get_values(self, obj):
+        return {
+            value.column.name: value.value
+            for value in obj.values.select_related('column').all()
+        }

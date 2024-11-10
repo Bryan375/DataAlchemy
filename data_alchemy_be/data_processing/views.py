@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
 import logging
+
+from django.core.paginator import Paginator
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
@@ -10,7 +12,8 @@ from .response import APIResponse
 from .serializers import (
     DatasetCreateSerializer,
     DatasetResponseSerializer,
-    DatasetListSerializer
+    DatasetRowsSerializer,
+    DatasetColumnSerializer
 )
 from .services import DatasetService
 from .validators import FileValidator
@@ -28,8 +31,6 @@ class DatasetViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return DatasetCreateSerializer
-        elif self.action == 'list':
-            return DatasetListSerializer
         return DatasetResponseSerializer
 
     def create(self, request, *args, **kwargs):
@@ -69,6 +70,61 @@ class DatasetViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return APIResponse.error(
                 message="Failed to upload dataset",
+                errors={"detail": str(e)}
+            )
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            pk = kwargs.get('pk')
+            dataset = Dataset.objects.filter(id=pk).last()
+
+            # Get pagination parameters
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 20))
+
+            # Get columns
+            columns = dataset.columns.all().order_by('position')
+            columns_data = DatasetColumnSerializer(columns, many=True).data
+
+            # Get rows with pagination
+            queryset = dataset.rows.all().prefetch_related(
+                'values',
+                'values__column'
+            ).order_by('row_index')
+
+            paginator = Paginator(queryset, page_size)
+            current_page = paginator.page(page)
+
+            # Serialize rows
+            rows_data = DatasetRowsSerializer(current_page.object_list, many=True).data
+
+            # Get dataset basic info
+            dataset_data = DatasetResponseSerializer(dataset).data
+
+            # Combine all data
+            response_data = {
+                "results": {
+                    "dataset": dataset_data,
+                    "columns": columns_data,
+                    "rows": [row['values'] for row in rows_data]
+                },
+                "count": paginator.count,
+                "next": page + 1 if current_page.has_next() else None,
+                "previous": page - 1 if current_page.has_previous() else None,
+                "current_page": page,
+                "total_pages": paginator.num_pages,
+                "page_size": page_size
+            }
+
+            return APIResponse.paginated_response(
+                data=response_data,
+                message="Dataset retrieved successfully"
+            )
+
+        except Exception as e:
+            logger.error(f"Error retrieving dataset: {str(e)}")
+            return APIResponse.error(
+                message="Failed to retrieve dataset",
                 errors={"detail": str(e)}
             )
 
