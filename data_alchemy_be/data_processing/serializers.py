@@ -71,7 +71,7 @@ class DatasetCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dataset
-        fields = ['name', 'file']
+        fields = ['file']
 
     def validate_file(self, value):
         """
@@ -98,7 +98,7 @@ class DatasetCreateSerializer(serializers.ModelSerializer):
         if not data.get('name'):
             # Use filename as name if not provided
             data['name'] = data['file'].name.rsplit('.', 1)[0]
-        return data
+            return data
 
     def create(self, validated_data):
         """Add file_type before creation."""

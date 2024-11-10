@@ -9,12 +9,12 @@ export const DataTypeSelector: FC<DataTypeSelectorProps> = ({onTypeChange}) => {
                 <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="int64">Integer</SelectItem>
-                <SelectItem value="float64">Float</SelectItem>
-                <SelectItem value="object">Text</SelectItem>
-                <SelectItem value="datetime64">Date</SelectItem>
-                <SelectItem value="bool">Boolean</SelectItem>
-                <SelectItem value="category">Category</SelectItem>
+                <SelectItem value="Integer">Integer</SelectItem>
+                <SelectItem value="Decimal">Decimal</SelectItem>
+                <SelectItem value="Text">Text</SelectItem>
+                <SelectItem value="Datetime">Datetime</SelectItem>
+                <SelectItem value="Boolean">Boolean</SelectItem>
+                <SelectItem value="Category">Category</SelectItem>
             </SelectContent>
         </Select>
     );

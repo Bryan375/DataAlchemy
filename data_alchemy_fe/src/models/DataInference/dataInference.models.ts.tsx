@@ -7,6 +7,7 @@ export interface Data {
 }
 
 export interface Column {
+    id: string
     name: string
     columnIndex: number
     inferredType: string
@@ -23,13 +24,11 @@ export interface CustomInferredTypes {
 }
 
 export interface TaskStatus {
-    status: 'in_progress' | 'completed' | 'failed';
+    status: 'PROGRESS' | 'SUCCESS' | 'FAILED';
     progress: number;
-    message?: string;
-    fileId: string;
 }
 
 export interface FileUploadResponse {
     taskId: string;
-    fileId: string;
+    datasetId: string;
 }

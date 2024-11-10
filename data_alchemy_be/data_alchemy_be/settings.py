@@ -161,7 +161,3 @@ CELERY_TASK_ROUTES = {
 }
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
-
-# File Upload Settings
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'

@@ -100,7 +100,6 @@ class DataProcessingService:
                             stage='Processing column data'
                         )
                     processed_columns += 1
-                    time.sleep(7)
 
                 overall_progress = (processed_columns / total_columns) * 100
 
@@ -129,72 +128,71 @@ class DataProcessingService:
     @staticmethod
     def _process_column_chunk(chunk: pd.Series, current_type: str) -> Tuple[pd.Series, str]:
         """Process a chunk of data for a column, returning converted data and inferred type."""
-        type_counts = {}  # Dictionary to count occurrences of each inferred type
-
-        # Skip if already properly typed
+        # Skip if already numeric or datetime
         if current_type != 'Text' and (is_numeric_dtype(chunk) or is_datetime64_any_dtype(chunk)):
-            type_counts[str(chunk.dtype)] = 1
             return chunk, current_type
 
-        # Try datetime
+        # Clean and normalize the chunk
+        normalized_chunk = DataProcessingService._normalize_values(chunk)
+
+        # Handle all null case
+        if chunk.isna().all():
+            return chunk, 'Text'
+
+        # Try boolean conversion first
+        if chunk.dtype == 'object':
+            unique_values = normalized_chunk.dropna().unique()
+            boolean_values = {'true', 'false', 'yes', 'no', '1', '0', 't', 'f', 'y', 'n'}
+            if len(unique_values) <= 2 and set(map(str, unique_values)).issubset(boolean_values):
+                converted = normalized_chunk.map(
+                    lambda x: True if str(x).lower() in {'true', 'yes', '1', 't', 'y'}
+                    else False if str(x).lower() in {'false', 'no', '0', 'f', 'n'}
+                    else None
+                )
+                return converted, 'Boolean'
+
+        # Try numeric conversion
         try:
-            converted = pd.to_datetime(chunk, errors='raise')
-            type_counts['Datetime'] = type_counts.get('Datetime', 0) + 1
-            return converted, 'Datetime'
+            cleaned_chunk = DataProcessingService._clean_numeric_string(chunk)
+            numeric_chunk = pd.to_numeric(cleaned_chunk, errors='raise')
+
+            # Check if it should be integer
+            if numeric_chunk.dropna().apply(lambda x: float(x).is_integer()).all():
+                return numeric_chunk.astype('Int64'), 'Integer'
+            return numeric_chunk, 'Float'
         except (ValueError, TypeError):
             pass
 
-        # Try boolean
-        if chunk.dtype == 'object':
-            unique_values = chunk.dropna().str.lower().unique()
-        else:
-            unique_values = chunk.dropna().unique()
-
-        if len(unique_values) == 2:
-            boolean_values = {'true', 'false', 'yes', 'no', '1', '0'}
-            if set(map(str, unique_values)).issubset(boolean_values):
-                def map_to_boolean(value):
-                    if pd.isna(value):
-                        return None
-                    value_str = str(value).lower()
-                    if value_str in {'true', 'yes', '1'}:
-                        return True
-                    return False
-
-                type_counts['Boolean'] = type_counts.get('Boolean', 0) + 1
-                return chunk.map(map_to_boolean), 'Boolean'
-
-        # Try integer
+        # Try datetime conversion
         try:
-            if chunk.dropna().apply(lambda x: str(x).isdigit()).all():
-                converted = chunk.astype('Int64')
-                type_counts['Integer'] = type_counts.get('Integer', 0) + 1
-                return converted, 'Integer'
-        except ValueError:
-            pass
-
-        # Try float
-        try:
-            converted = pd.to_numeric(chunk)
-            type_counts['Decimal'] = type_counts.get('Decimal', 0) + 1
-            return converted, 'Decimal'
-        except ValueError:
+            datetime_chunk = pd.to_datetime(chunk, errors='raise')
+            return datetime_chunk, 'Datetime'
+        except (ValueError, TypeError):
             pass
 
         # Check for categorical
-        unique_count = chunk.nunique()
-        total_count = len(chunk)
-        if unique_count <= 10 and unique_count < 0.2 * total_count:
-            type_counts['Category'] = type_counts.get('Category', 0) + 1
+        unique_count = normalized_chunk.dropna().nunique()
+        total_count = len(normalized_chunk.dropna())
+
+        if (total_count >= 30 and
+                unique_count <= 10 and
+                unique_count < 0.2 * total_count and
+                total_count >= unique_count * 3):
             return chunk.astype('category'), 'Category'
 
-        # Default to text if no other type was consistently inferred
-        type_counts['Text'] = type_counts.get('Text', 0) + 1
-        
-        # Determine the most common inferred type
-        if type_counts:
-            inferred_type = max(type_counts.items(), key=lambda x: x[1])[0]
-        else:
-            inferred_type = 'Text'
+        # Default to text
+        return chunk, 'Text'
 
-        return chunk, inferred_type
+    @staticmethod
+    def _normalize_values(chunk):
+        """Normalize string values by stripping whitespace and converting to lowercase"""
+        if chunk.dtype == 'object':
+            return chunk.str.strip().str.lower()
+        return chunk
+
+    @staticmethod
+    def _clean_numeric_string(chunk):
+        """Clean numeric strings by removing commas"""
+        if chunk.dtype == 'object':
+            return chunk.str.replace(',', '')
+        return chunk

@@ -20,7 +20,6 @@ export interface DataInferenceTemplateProps {
     onApplyChanges: () => void
     currentPage: number
     setCurrentPage: (page: number) => void
-    itemsPerPage: number
 }
 
 export interface ProcessingProgressProps {
@@ -49,7 +48,6 @@ export interface DataTableProps {
     columns: Column[];
     pagination: PaginationMeta;
     currentPage: number;
-    itemsPerPage: number;
     onPageChange: (page: number) => void;
 }
 

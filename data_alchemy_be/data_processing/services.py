@@ -39,13 +39,12 @@ class DatasetService:
         }
 
     @staticmethod
-    def get_status(dataset, job_id: str = None) -> Dict[str, Any]:
+    def get_status(dataset, task_id: str = None) -> Dict[str, Any]:
         """Get dataset processing status."""
-        job_id = job_id or dataset.jobs.first().id
-        if not job_id:
+        if not task_id:
             raise ValueError("No job found for dataset")
 
-        key = f'celery-task-meta-{job_id}'
+        key = f'celery-task-meta-{task_id}'
         value = RedisClient().get(key)
 
         if value:
@@ -71,38 +70,110 @@ class ColumnService:
 
         # Convert to pandas series for easier validation
         series = pd.Series(values)
-
+        
+        # Handle empty series
+        if series.empty:
+            return True, ""
+        
+        # Handle all null series
+        if series.isna().all():
+            return True, ""
+        
+        # Clean the series (remove whitespace, handle empty strings)
+        series = series.apply(lambda x: x.strip() if isinstance(x, str) else x)
+        series = series.replace('', pd.NA)
+        
         try:
             if target_type == 'Integer':
-                # Try converting to integer
-                series = pd.to_numeric(series, downcast='integer')
-                if series.apply(lambda x: x != int(x)).any():
+                # Remove commas from numbers (e.g., "1,000" -> "1000")
+                series = series.apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
+                
+                # Try converting to numeric
+                numeric_series = pd.to_numeric(series, errors='coerce')
+                
+                # Check for NaN values (conversion failures)
+                if numeric_series.isna().any():
+                    non_numeric = series[numeric_series.isna()].dropna().unique()
+                    return False, f"Non-numeric values found: {', '.join(map(str, non_numeric[:5]))}..."
+                
+                # Check for decimals
+                if (numeric_series.dropna() != numeric_series.dropna().astype(int)).any():
                     return False, "Some values contain decimal points"
+                
+                # Check for integer overflow
+                if (numeric_series > 2**63 - 1).any() or (numeric_series < -2**63).any():
+                    return False, "Some values are too large or small for integer type"
 
             elif target_type == 'Float':
+                # Remove commas and handle scientific notation
+                series = series.apply(lambda x: str(x).replace(',', '') if isinstance(x, (str, int, float)) else x)
+                
                 # Try converting to float
-                pd.to_numeric(series)
+                numeric_series = pd.to_numeric(series, errors='coerce')
+                
+                # Check for NaN values (conversion failures)
+                if numeric_series.isna().any():
+                    non_numeric = series[numeric_series.isna()].dropna().unique()
+                    return False, f"Non-numeric values found: {', '.join(map(str, non_numeric[:5]))}..."
+                
+                # Check for float overflow
+                if (numeric_series.abs() > 1.8e308).any():
+                    return False, "Some values are too large for float type"
 
             elif target_type == 'Datetime':
-                # Try converting to datetime
-                pd.to_datetime(series)
+                # Try converting to datetime with various formats
+                datetime_series = pd.to_datetime(series, errors='coerce')
+                
+                # Check for NaN values (conversion failures)
+                if datetime_series.isna().any():
+                    invalid_dates = series[datetime_series.isna()].dropna().unique()
+                    return False, f"Invalid date values found: {', '.join(map(str, invalid_dates[:5]))}..."
+                
+                # Check for dates out of reasonable range (e.g., year 1000-9999)
+                if (datetime_series.dt.year < 1000).any() or (datetime_series.dt.year > 9999).any():
+                    return False, "Some dates are outside the supported range (year 1000-9999)"
 
             elif target_type == 'Boolean':
-                # Check if values are boolean-like
-                valid_values = {'true', 'false', '1', '0', 'yes', 'no'}
-                invalid_values = set(series.str.lower()) - valid_values
+                # Define valid boolean values (case-insensitive)
+                true_values = {'true', 'yes', '1', 't', 'y', 'on', 'true', 'yes'}
+                false_values = {'false', 'no', '0', 'f', 'n', 'off', 'false', 'no'}
+                
+                # Convert to lowercase for comparison
+                series = series.apply(lambda x: str(x).lower().strip() if pd.notna(x) else x)
+                
+                # Check for invalid values
+                invalid_values = set(series.dropna().unique()) - true_values - false_values
                 if invalid_values:
-                    return False, f"Invalid boolean values found: {invalid_values}"
+                    return False, f"Invalid boolean values found: {', '.join(sorted(invalid_values)[:5])}..."
 
             elif target_type == 'Category':
-                # Check if unique values are within reasonable limit
-                if series.nunique() > 100:
-                    return False, "Too many unique values for category type"
+                # Remove nulls and get unique values
+                unique_values = series.dropna().unique()
+                total_count = len(series.dropna())
+                
+                # Check number of unique values
+                if len(unique_values) > 100:
+                    return False, f"Too many unique values for category type ({len(unique_values)} found, maximum is 100)"
+                
+                # Check frequency of values
+                value_counts = series.value_counts()
+                rare_values = value_counts[value_counts < total_count * 0.01]  # Values appearing in less than 1% of rows
+                
+                if not rare_values.empty:
+                    return False, f"Some categories are too rare (less than 1% occurrence): {', '.join(map(str, rare_values.index[:5]))}..."
+
+            elif target_type == 'Text':
+                # Text can accept any value
+                return True, ""
+                
+            else:
+                return False, f"Unsupported target type: {target_type}"
 
             return True, ""
 
         except Exception as e:
-            return False, str(e)
+            logger.error(f"Error validating type conversion: {str(e)}")
+            return False, f"Validation error: {str(e)}"
 
     @staticmethod
     @transaction.atomic

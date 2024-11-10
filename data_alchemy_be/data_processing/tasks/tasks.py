@@ -7,6 +7,8 @@ import logging
 from typing import Dict, Any
 from data_processing.models import Dataset, ProcessingJob, Column, RowValue
 from data_processing.tasks.task_service import DataProcessingService
+from utils.helpers import convert_to_integer, convert_to_float, convert_to_datetime, convert_to_boolean, \
+    convert_to_category
 
 logger = logging.getLogger(__name__)
 
@@ -90,45 +92,70 @@ def convert_column_type_task(self, column_id: str, dataset_id: str, target_type:
         values = RowValue.objects.filter(column=column)
         total_values = values.count()
 
+        if total_values == 0:
+            job.status = 'COMPLETED'
+            job.completed_at = timezone.now()
+            job.save()
+            return {
+                'status': 'success',
+                'message': 'No values to convert'
+            }
+
+        # Initial progress
         self.update_state(
             state='PROGRESS',
             meta={'progress': 0}
         )
 
-        for i, value in enumerate(values):
-            # Convert value based on target type
-            try:
-                if target_type == 'Integer':
-                    converted_value = int(float(value.value)) if value.value else ''
-                elif target_type == 'Float':
-                    converted_value = float(value.value) if value.value else ''
-                elif target_type == 'Datetime':
-                    converted_value = pd.to_datetime(value.value) if value.value else ''
-                elif target_type == 'Boolean':
-                    converted_value = value.value.lower() in {'true', 'yes', '1'} if value.value else ''
-                else:
-                    converted_value = value.value
+        conversion_functions = {
+            'Integer': convert_to_integer,
+            'Float': convert_to_float,
+            'Datetime': convert_to_datetime,
+            'Boolean': convert_to_boolean,
+            'Category': convert_to_category,
+            'Text': str
+        }
 
-                value.value = str(converted_value)
-                value.save()
+        # Get the appropriate conversion function
+        convert_func = conversion_functions.get(target_type)
+        if not convert_func:
+            raise ValueError(f"Unsupported target type: {target_type}")
 
-            except Exception as e:
-                job.status = 'FAILED'
-                job.error_message = f"Error converting value at row {value.dataset_row.row_index}: {str(e)}"
-                job.completed_at = timezone.now()
-                job.save()
-                raise
+        # Batch processing to improve performance
+        batch_size = 1000
+        total_batches = (total_values + batch_size - 1) // batch_size
+        
+        for batch_index in range(total_batches):
+            start_idx = batch_index * batch_size
+            end_idx = min((batch_index + 1) * batch_size, total_values)
+            
+            batch_values = values[start_idx:end_idx]
+            updated_values = []
+
+            for value in batch_values:
+                try:
+                    converted_value = convert_func(value.value)
+                    value.value = converted_value
+                    updated_values.append(value)
+                except Exception as e:
+                    job.status = 'FAILED'
+                    job.error_message = (
+                        f"Error converting value '{value.value}' at row "
+                        f"{value.dataset_row.row_index}: {str(e)}"
+                    )
+                    job.completed_at = timezone.now()
+                    job.save()
+                    raise
+
+            # Bulk update the batch
+            RowValue.objects.bulk_update(updated_values, ['value'])
 
             # Update progress
-            progress_interval = max(1, total_values // 20)  # At least 1, or every 5% for larger datasets
-
-            if (i + 1) % progress_interval == 0 or (i + 1) == total_values:
-                progress = ((i + 1) / total_values) * 100
-                self.update_state(
-                    state='PROGRESS',
-                    meta={'progress': round(progress, 2)}
-                )
-            time.sleep(10)
+            progress = ((batch_index + 1) * batch_size / total_values) * 100
+            self.update_state(
+                state='PROGRESS',
+                meta={'progress': min(round(progress, 2), 100)}
+            )
 
         # Update column type
         column.current_type = target_type
@@ -146,4 +173,9 @@ def convert_column_type_task(self, column_id: str, dataset_id: str, target_type:
 
     except Exception as e:
         logger.error(f"Error in convert_column_type_task: {str(e)}")
+        if job.status != 'FAILED':  # Only update if not already marked as failed
+            job.status = 'FAILED'
+            job.error_message = str(e)
+            job.completed_at = timezone.now()
+            job.save()
         raise

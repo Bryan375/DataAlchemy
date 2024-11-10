@@ -19,8 +19,7 @@ export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
     onTypeChange,
     onApplyChanges,
     currentPage,
-    setCurrentPage,
-    itemsPerPage
+    setCurrentPage
 }) => {
 
     return (<div className={'min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 py-8'}>
@@ -67,7 +66,6 @@ export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({
                                         columns={data.column}
                                         pagination={data.pagination}
                                         currentPage={currentPage}
-                                        itemsPerPage={itemsPerPage}
                                         onPageChange={setCurrentPage}
                                     />
                                 </TabsContent>

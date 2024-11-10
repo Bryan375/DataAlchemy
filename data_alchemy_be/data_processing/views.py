@@ -81,7 +81,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
 
             # Get pagination parameters
             page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 20))
+            page_size = int(request.query_params.get('page_size', 2))
 
             # Get columns
             columns = dataset.columns.all().order_by('position')
@@ -132,12 +132,12 @@ class DatasetViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def status(self, request, pk=None):
         try:
-            job_id = request.query_params.get('job_id')
+            task_id = request.query_params.get('taskId')
             dataset = Dataset.objects.filter(id=pk).last()
             if not dataset:
                 raise Dataset.DoesNotExist("Dataset not found")
 
-            value = DatasetService.get_status(dataset, job_id)
+            value = DatasetService.get_status(dataset, task_id)
 
             return APIResponse.success(data=value)
         except Exception as e:
@@ -176,7 +176,6 @@ class ColumnViewSet(viewsets.ViewSet):
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Start type conversion
             result = ColumnService.update_column_type(dataset_id, column.id, target_type)
 
             return APIResponse.success(

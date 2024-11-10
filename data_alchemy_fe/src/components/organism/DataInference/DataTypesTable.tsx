@@ -19,9 +19,9 @@ export const DataTypesTable: FC<DataTypesTableProps> = ({columnDetails, onTypeCh
                     {columnDetails.map((column: Column) => (
                         <TableRow key={column.name} className="hover:bg-blue-50">
                             <TableCell className="font-medium text-blue-800">{column.name}</TableCell>
-                            <TableCell className="text-gray-600">{column.inferredType}</TableCell>
+                            <TableCell className="text-gray-600">{column.customUserType}</TableCell>
                             <TableCell>
-                                <TypeChangeDialog column={column} currentType={column.inferredType} onTypeChange={onTypeChange} onApplyChanges={onApplyChanges}/>
+                                <TypeChangeDialog column={column} currentType={column.customUserType} onTypeChange={onTypeChange} onApplyChanges={onApplyChanges}/>
                             </TableCell>
                         </TableRow>
                     ))}
