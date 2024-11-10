@@ -40,8 +40,6 @@ services:
     command: celery -A data_alchemy_be worker --loglevel=info --concurrency=2 -Q default,data_processing,exports3
     volumes:
       - ./data_alchemy_be:/code
-      - ./data_alchemy_be/media:/code/media
-      - ./data_alchemy_be/exports:/code/exports
     environment:
       - PYTHONPATH=/code
       - DB_NAME=data_alchemy

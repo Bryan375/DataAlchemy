@@ -5,8 +5,8 @@ from typing import Dict, Any
 from django.db import transaction
 
 from utils.redis_client import RedisClient
+from .tasks.tasks import process_dataset_task
 from .models import Dataset, ProcessingJob
-from .tasks import process_dataset_task
 logger = logging.getLogger(__name__)
 
 class DatasetService:

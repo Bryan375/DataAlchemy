@@ -1,11 +1,9 @@
-import time
-
 from celery import shared_task
 from django.utils import timezone
 import logging
 from typing import Dict, Any
-from .models import Dataset, ProcessingJob
-from .task_service import DataProcessingService
+from data_processing.models import Dataset, ProcessingJob
+from data_processing.tasks.task_service import DataProcessingService
 
 logger = logging.getLogger(__name__)
 
