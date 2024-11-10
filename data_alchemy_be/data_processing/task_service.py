@@ -1,11 +1,11 @@
 import logging
 import time
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any, Tuple
 import pandas as pd
-from .models import Dataset, Column
+from pandas.core.dtypes.common import is_datetime64_any_dtype, is_numeric_dtype
+from .models import Dataset, Column, DatasetRow, RowValue
 
 logger = logging.getLogger(__name__)
-
 
 
 class DataProcessingService:
@@ -22,178 +22,179 @@ class DataProcessingService:
         Uses pandas read_csv/read_excel with chunking.
         """
         try:
-            total_rows = 0
-            processed_rows = 0
+            if dataset.file_type == 'csv':
+                df = pd.read_csv(dataset.file.path)
+            elif dataset.file_type in ('xls', 'xlsx'):
+                df = pd.read_excel(dataset.file.path)
+            else:
+                raise ValueError("Unsupported file format. Please use CSV or Excel.")
 
-            file_type = dataset.file_type
-            logger.debug(f'file: {file_type}')
-            chunks = None
+            total_columns = len(df.columns)
+            total_rows = len(df)
+            processed_columns = 0
+            overall_progress = 0
 
-            if file_type == 'csv':
-                chunks = pd.read_csv(
-                    dataset.file.path,
-                    chunksize=cls.CHUNK_SIZE
-                )
-                logger.debug(f'chunks: {chunks}')
-
-
-            first_chunk = next(chunks)
-            total_rows = len(first_chunk)
-
-            # Update initial progress
-            if progress_callback:
-                progress_callback(
-                    progress={'processed_rows': 0, 'total_rows': total_rows},
-                    stage='Analyzing column types'
-                )
-
-            time.sleep(30)
-
-            # Process columns from first chunk
-            columns_info = {}
-            for pos, col_name in enumerate(first_chunk.columns):
-                logger.debug(f'col_name: {col_name}, pos: {pos}')
-                # Infer column type
-                col_type, stats = cls._infer_column_type(first_chunk[col_name])
-
-                # Create column record
-                Column.objects.create(
+            # Create columns first
+            columns_map = {}
+            for pos, col_name in enumerate(df.columns):
+                column = Column.objects.create(
                     dataset=dataset,
                     name=col_name,
+                    original_name=col_name,
                     position=pos,
-                    inferred_type=col_type,
-                    current_type=col_type,
-                    unique_values_count=stats.get('unique_count', 0),
-                    null_count =stats.get('null_count', 0),
-                    sample_values =stats.get('sample_values', []),
-                    statistics=stats
+                    inferred_type='Text',
+                    current_type='Text'
                 )
+                columns_map[col_name] = column
 
-                columns_info[col_name] = {
-                    'type': col_type,
-                    'stats': stats
-                }
+            # Process data in chunks
+            for start in range(0, len(df), cls.CHUNK_SIZE):
+                end = min(start + cls.CHUNK_SIZE, len(df))
+                chunk = df.iloc[start:end]
+    
+                dataset_rows = [
+                    DatasetRow(
+                        dataset=dataset,
+                        row_index=start + idx
+                    ) for idx in range(len(chunk))
+                ]
+                created_rows = DatasetRow.objects.bulk_create(dataset_rows)
 
-                # Update column analysis progress
+                # Process each column for this chunk
+                for column_name in df.columns:
+                    column = columns_map[column_name]
+                    chunk_series = chunk[column_name]
+                    
+                    converted_chunk, inferred_type = cls._process_column_chunk(
+                        chunk_series, 
+                        column.inferred_type
+                    )
+
+                    # Update column type if needed
+                    if column.inferred_type != inferred_type:
+                        column.inferred_type = inferred_type
+                        column.current_type = inferred_type
+                        column.save()
+
+                    row_values = [
+                        RowValue(
+                            dataset_row=created_rows[idx],
+                            column=column,
+                            value=str(value) if pd.notna(value) else ''
+                        ) for idx, value in enumerate(converted_chunk)
+                    ]
+                    
+                    RowValue.objects.bulk_create(row_values, batch_size=1000)
+
+                    # Calculate progress
+                    chunk_progress = (end / total_rows) * 100
+                    overall_progress = (processed_columns * 100 + chunk_progress) / total_columns
+
+                    if progress_callback:
+                        progress_callback(
+                            progress={
+                                'total_rows': total_rows,
+                                'processed_rows': end,
+                                'progress': round(overall_progress, 2),
+                            },
+                            stage='Processing column data'
+                        )
+                    processed_columns += 1
+                    time.sleep(7)
+
+                overall_progress = (processed_columns / total_columns) * 100
+
+                # Report completion of column
                 if progress_callback:
-                    progress = (pos + 1) / len(first_chunk.columns) * 20
                     progress_callback(
                         progress={
-                            'processed_rows': 0,
                             'total_rows': total_rows,
-                            'progress': progress
+                            'processed_rows': total_rows,
+                            'progress': round(overall_progress, 2),
                         },
-                        stage=f'Analyzing column: {col_name}'
-                    )
-                time.sleep(30)
-
-            # Process remaining chunks for statistics
-            for chunk_num, chunk in enumerate(chunks, 1):
-                # Update total rows count
-                total_rows += len(chunk)
-                processed_rows += len(chunk)
-
-                # Update statistics for each column
-                for col_name, info in columns_info.items():
-                    column_data = chunk[col_name]
-                    cls._update_column_statistics(
-                        dataset.columns.get(name=col_name),
-                        column_data,
-                        info['type']
+                        stage='Column processing complete'
                     )
 
-                # Update progress
-                if progress_callback:
-                    progress = 20 + (processed_rows / total_rows * 80)
-                    progress_callback(
-                        progress={
-                            'processed_rows': processed_rows,
-                            'total_rows': total_rows,
-                            'progress': progress
-                        },
-                        stage=f'Processing batch {chunk_num}'
-                    )
-
-            # Update dataset metadata
-            dataset.rows_count = total_rows
-            dataset.columns_count = len(columns_info)
-            dataset.save()
 
             return {
                 'total_rows': total_rows,
-                'total_columns': len(columns_info),
-                'columns': columns_info
+                'total_columns': total_columns
             }
 
         except Exception as e:
+            logger.error(f"Error processing dataset: {str(e)}")
             raise Exception(f"Error processing dataset: {str(e)}")
 
+        
     @staticmethod
-    def _infer_column_type(series: pd.Series) -> tuple[str, Dict]:
-        """Infer column type from data sample."""
-        # Take a sample for type inference
-        sample = series.dropna().head(1000)
-        stats = {
-            'null_count': int(series.isnull().sum()),
-            'unique_count': int(series.nunique()),
-            'sample_values': series.dropna().head(5).tolist()
-        }
-        logger.debug(f'stats: {stats}')
+    def _process_column_chunk(chunk: pd.Series, current_type: str) -> Tuple[pd.Series, str]:
+        """Process a chunk of data for a column, returning converted data and inferred type."""
+        type_counts = {}  # Dictionary to count occurrences of each inferred type
 
-        try:
-            # Try numeric conversion
-            pd.to_numeric(sample)
-            # Check if integers
-            if all(float(x).is_integer() for x in sample):
-                return 'INTEGER', stats
-            return 'FLOAT', stats
-        except:
-            pass
+        # Skip if already properly typed
+        if current_type != 'Text' and (is_numeric_dtype(chunk) or is_datetime64_any_dtype(chunk)):
+            type_counts[str(chunk.dtype)] = 1
+            return chunk, current_type
 
         # Try datetime
         try:
-            pd.to_datetime(sample)
-            return 'DATETIME', stats
-        except:
+            converted = pd.to_datetime(chunk, errors='raise')
+            type_counts['Datetime'] = type_counts.get('Datetime', 0) + 1
+            return converted, 'Datetime'
+        except (ValueError, TypeError):
             pass
 
-        # Check for boolean
-        if set(sample.unique()) <= {'True', 'False', True, False, 0, 1}:
-            return 'BOOLEAN', stats
+        # Try boolean
+        if chunk.dtype == 'object':
+            unique_values = chunk.dropna().str.lower().unique()
+        else:
+            unique_values = chunk.dropna().unique()
 
-        # Default to text
-        return 'TEXT', stats
+        if len(unique_values) == 2:
+            boolean_values = {'true', 'false', 'yes', 'no', '1', '0'}
+            if set(map(str, unique_values)).issubset(boolean_values):
+                def map_to_boolean(value):
+                    if pd.isna(value):
+                        return None
+                    value_str = str(value).lower()
+                    if value_str in {'true', 'yes', '1'}:
+                        return True
+                    return False
 
-    @staticmethod
-    def _update_column_statistics(
-            column: Column,
-            series: pd.Series,
-            data_type: str
-    ) -> None:
-        """Update column statistics with new batch of data."""
-        stats = column.statistics or {}
+                type_counts['Boolean'] = type_counts.get('Boolean', 0) + 1
+                return chunk.map(map_to_boolean), 'Boolean'
 
-        # Update basic stats
-        stats['null_count'] = stats.get('null_count', 0) + int(series.isnull().sum())
-        stats['unique_count'] = len(set(stats.get('sample_values', []) + series.dropna().head(5).tolist()))
+        # Try integer
+        try:
+            if chunk.dropna().apply(lambda x: str(x).isdigit()).all():
+                converted = chunk.astype('Int64')
+                type_counts['Integer'] = type_counts.get('Integer', 0) + 1
+                return converted, 'Integer'
+        except ValueError:
+            pass
 
-        # Update type-specific stats
-        if data_type in ['INTEGER', 'FLOAT']:
-            numeric_series = pd.to_numeric(series, errors='coerce')
-            current_min = stats.get('min')
-            current_max = stats.get('max')
+        # Try float
+        try:
+            converted = pd.to_numeric(chunk)
+            type_counts['Decimal'] = type_counts.get('Decimal', 0) + 1
+            return converted, 'Decimal'
+        except ValueError:
+            pass
 
-            if not pd.isna(numeric_series.min()):
-                stats['min'] = min(
-                    numeric_series.min(),
-                    current_min if current_min is not None else float('inf')
-                )
+        # Check for categorical
+        unique_count = chunk.nunique()
+        total_count = len(chunk)
+        if unique_count <= 10 and unique_count < 0.2 * total_count:
+            type_counts['Category'] = type_counts.get('Category', 0) + 1
+            return chunk.astype('category'), 'Category'
 
-            if not pd.isna(numeric_series.max()):
-                stats['max'] = max(
-                    numeric_series.max(),
-                    current_max if current_max is not None else float('-inf')
-                )
+        # Default to text if no other type was consistently inferred
+        type_counts['Text'] = type_counts.get('Text', 0) + 1
+        
+        # Determine the most common inferred type
+        if type_counts:
+            inferred_type = max(type_counts.items(), key=lambda x: x[1])[0]
+        else:
+            inferred_type = 'Text'
 
-        column.statistics = stats
-        column.save()
+        return chunk, inferred_type

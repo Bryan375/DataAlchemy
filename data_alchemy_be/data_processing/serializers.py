@@ -11,13 +11,10 @@ class ColumnSerializer(serializers.ModelSerializer):
         model = Column
         fields = [
             'id', 'name', 'original_name', 'position',
-            'inferred_type', 'current_type',
-            'sample_values', 'unique_values_count', 'null_count'
+            'inferred_type', 'current_type'
         ]
         read_only_fields = [
-            'id', 'name', 'original_name', 'position',
-            'inferred_type', 'sample_values',
-            'unique_values_count', 'null_count'
+            'id', 'name', 'original_name', 'position','inferred_type'
         ]
 
     def validate_current_type(self, value):
@@ -53,8 +50,7 @@ class DatasetListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dataset
         fields = [
-            'id', 'name', 'created_at',
-            'rows_count', 'columns_count', 'job_status'
+            'id', 'name', 'created_at', 'job_status'
         ]
 
     def get_job_status(self, obj):
@@ -121,8 +117,7 @@ class DatasetResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dataset
         fields = [
-            'id', 'name', 'file', 'file_type', 'rows_count', 'columns_count',
-            'created_at',
+            'id', 'name', 'file', 'file_type', 'created_at',
             'columns', 'latest_job', 'file_size'
         ]
         read_only_fields = fields

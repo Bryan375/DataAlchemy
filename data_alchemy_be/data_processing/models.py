@@ -12,8 +12,6 @@ class Dataset(models.Model):
     name = models.CharField(max_length=255)
     file = models.FileField(validators=[FileExtensionValidator(allowed_extensions=['csv', 'xlsx', 'xls'])])
     file_type = models.CharField(max_length=10, choices=[('CSV', 'CSV'), ('EXCEL', 'Excel')])
-    rows_count = models.IntegerField(null=True, blank=True)
-    columns_count = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -43,19 +41,10 @@ class Column(models.Model):
     position = models.IntegerField()
     inferred_type = models.CharField(max_length=20, choices=DATA_TYPES)
     current_type = models.CharField(max_length=20, choices=DATA_TYPES)
-    nullable = models.BooleanField(default=True)
-    unique_values_count = models.IntegerField(default=0)
-    null_count = models.IntegerField(default=0)
-    sample_values = models.JSONField(default=list)
 
     class Meta:
         ordering = ['position']
         unique_together = ['dataset', 'name']
-        verbose_name = 'Column'
-        verbose_name_plural = 'Columns'
-
-    def __str__(self):
-        return f"{self.dataset.name} - {self.name} ({self.current_type})"
 
 
 class ProcessingJob(models.Model):
@@ -93,3 +82,26 @@ class ProcessingJob(models.Model):
 
     def __str__(self):
         return f"{self.dataset.name} - {self.job_type} ({self.status})"
+
+class DatasetRow(models.Model):
+    """
+    Model to store information about each row in the dataset.
+    """
+    dataset = models.ForeignKey(Dataset, on_delete=models.CASCADE, related_name='rows')
+    row_index = models.IntegerField()  # Index of the row in the original file
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['row_index']
+        unique_together = ['dataset', 'row_index']
+
+
+class RowValue(models.Model):
+    """
+    Model to store individual values for each cell in a row of the dataset.
+    """
+    dataset_row = models.ForeignKey(DatasetRow, on_delete=models.CASCADE, related_name='values')
+    column = models.ForeignKey(Column, on_delete=models.CASCADE, related_name='row_values')
+    value = models.TextField()  # Store the value as text for flexibility across data types
+
+

@@ -17,17 +17,12 @@ def process_dataset_task(self, dataset_id: str, job_id: str) -> Dict[str, Any]:
     Soft time limit: 1 hour
     """
 
-    logger.debug(f"Processing dataset {dataset_id}")
     dataset = Dataset.objects.filter(id=dataset_id).last()
 
-    logger.debug(f"Processing dataset {dataset}")
-
     job = ProcessingJob.objects.filter(id=job_id).last()
-    logger.debug(f"job {job}")
     job.status = 'RUNNING'
     job.started_at = timezone.now()
     job.save()
-
 
     try:
         # Update initial status
@@ -41,15 +36,13 @@ def process_dataset_task(self, dataset_id: str, job_id: str) -> Dict[str, Any]:
             }
         )
 
-        time.sleep(30)
-
         # Start processing
         result = DataProcessingService.process_dataset(
             dataset=dataset,
             progress_callback=lambda progress, stage: self.update_state(
                 state='PROGRESS',
                 meta={
-                    'progress': progress,
+                    'progress': progress['progress'],
                     'current_stage': stage,
                     'processed_rows': progress['processed_rows'],
                     'total_rows': progress['total_rows']

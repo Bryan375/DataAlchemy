@@ -1,37 +1,37 @@
 version: '3.8'
 
 services:
-  frontend:
-    build:
-      context: ./data_alchemy_fe
-      dockerfile: Dockerfile
-    volumes:
-      - ./data_alchemy_fe:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-    depends_on:
-      - backend
-    networks:
-      - data_alchemy
-  backend:
-    build:
-      context: ./data_alchemy_be
-      dockerfile: Dockerfile
-    volumes:
-      - ./data_alchemy_be:/code
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-    networks:
-      - data_alchemy
-    command: python manage.py runserver 0.0.0.0:8000
+#  frontend:
+#    build:
+#      context: ./data_alchemy_fe
+#      dockerfile: Dockerfile
+#    volumes:
+#      - ./data_alchemy_fe:/app
+#      - /app/node_modules
+#    ports:
+#      - "5173:5173"
+#    environment:
+#      - VITE_API_URL=http://localhost:8000
+#    depends_on:
+#      - backend
+#    networks:
+#      - data_alchemy
+#  backend:
+#    build:
+#      context: ./data_alchemy_be
+#      dockerfile: Dockerfile
+#    volumes:
+#      - ./data_alchemy_be:/code
+#    ports:
+#      - "8000:8000"
+#    env_file:
+#      - .env
+#    depends_on:
+#      - db
+#      - redis
+#    networks:
+#      - data_alchemy
+#    command: python manage.py runserver 0.0.0.0:8000
 
   celery_worker:
     build:
@@ -44,13 +44,17 @@ services:
       - ./data_alchemy_be/exports:/code/exports
     environment:
       - PYTHONPATH=/code
-      - DJANGO_SETTINGS_MODULE=data_alchemy_be.settings
+      - DB_NAME=data_alchemy
+      - DB_USER=postgres  # Different database user for Celery
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     env_file:
       - .env
     depends_on:
-      - backend
+#      - backend
       - redis
       - db
     networks:

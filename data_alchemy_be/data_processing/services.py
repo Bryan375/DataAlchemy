@@ -6,7 +6,6 @@ from django.db import transaction
 
 from utils.redis_client import RedisClient
 from .models import Dataset, ProcessingJob
-from .serializers import DatasetResponseSerializer
 from .tasks import process_dataset_task
 logger = logging.getLogger(__name__)
 
@@ -25,15 +24,15 @@ class DatasetService:
             job_type='INFERENCE',
             status='QUEUED'
         )
+
         task = process_dataset_task.delay(str(dataset.id), str(job.id))
 
         job.celery_task_id = task.id
         job.save()
 
         return {
-            'dataset': DatasetResponseSerializer(dataset).data,
-            'job_id': str(job.id),
-            'task_id': task.id
+            'datasetId': dataset.id,
+            'taskId': task.id
         }
 
     @staticmethod
@@ -45,4 +44,12 @@ class DatasetService:
 
         key = f'celery-task-meta-{job_id}'
         value = RedisClient().get(key)
-        return json.loads(value.decode()) if value else {}
+
+        if value:
+            result = json.loads(value.decode())
+            return {
+                'status': result.get('status'),
+                'progress': result.get('result', {}).get('progress', 0),
+            }
+
+        return {}
