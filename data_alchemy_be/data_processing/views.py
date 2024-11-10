@@ -81,7 +81,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
 
             # Get pagination parameters
             page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 2))
+            page_size = int(request.query_params.get('page_size', 20))
 
             # Get columns
             columns = dataset.columns.all().order_by('position')
