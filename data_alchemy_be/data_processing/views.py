@@ -3,19 +3,20 @@ from __future__ import absolute_import
 import logging
 
 from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from django.core.exceptions import ValidationError
-from .models import Dataset
-from .response import APIResponse
+from .models import Dataset, Column
+from utils.response import APIResponse
 from .serializers import (
     DatasetCreateSerializer,
     DatasetResponseSerializer,
     DatasetRowsSerializer,
     DatasetColumnSerializer
 )
-from .services import DatasetService
+from .services import DatasetService, ColumnService
 from .validators import FileValidator
 
 
@@ -146,5 +147,48 @@ class DatasetViewSet(viewsets.ModelViewSet):
             )
 
 class ColumnViewSet(viewsets.ViewSet):
-    pass
+    @action(detail=True, methods=['put'])
+    def type_conversion(self, request, pk=None):
+        try:
+            dataset_id = request.data.get('datasetId')
+            target_type = request.data.get('targetType')
+
+            if not dataset_id or not target_type:
+                return APIResponse.error(
+                    message="Missing required parameters",
+                    errors={"detail": "dataset_id and target_type are required"},
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Get column and dataset
+            column = get_object_or_404(Column, id=pk, dataset_id=dataset_id)
+
+            # Validate conversion possibility
+            can_convert, error_message = ColumnService.validate_type_conversion(
+                column=column,
+                target_type=target_type
+            )
+
+            if not can_convert:
+                return APIResponse.error(
+                    message="Type conversion not possible",
+                    errors={"detail": error_message},
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Start type conversion
+            result = ColumnService.update_column_type(dataset_id, column.id, target_type)
+
+            return APIResponse.success(
+                data=result,
+                message="Type conversion started successfully",
+                status_code=status.HTTP_202_ACCEPTED
+            )
+
+        except Exception as e:
+            logger.error(f"Error in validate_conversion: {str(e)}")
+            return APIResponse.error(
+                message="Failed to validate type conversion",
+                errors={"detail": str(e)}
+            )
 
