@@ -1,16 +1,17 @@
-import {TypeChangeDialogProps} from "@/types/DataInference/dataInference.types.ts";
 import {FC, useState} from "react";
+import {TypeChangeDialogProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Column} from "../../../models/DataInference/dataInference.models.ts.tsx";
 import {
     Dialog,
     DialogContent,
-    DialogDescription, DialogFooter,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger
-} from "@/components/ui/dialog.tsx";
-import {Button} from "@/components/ui/button.tsx";
-import {DataTypeSelector} from "@/components/molecules/DataInference/DataTypeSelector.tsx";
-import {Column} from "@/models/DataInference/dataInference.models.ts.tsx";
+} from "../../ui/dialog.tsx";
+import {Button} from "../../ui/button.tsx";
+import {DataTypeSelector} from "../../molecules/DataInference/DataTypeSelector.tsx";
 
 
 export const TypeChangeDialog: FC<TypeChangeDialogProps> = ({ column, currentType, onTypeChange, onApplyChanges }) => {

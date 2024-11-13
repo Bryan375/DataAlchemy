@@ -1,4 +1,4 @@
-import {PaginationMeta} from "@/types/common.types.ts";
+import {PaginationMeta} from "../../types/common.types.ts";
 
 export interface Data {
     column: Column[]

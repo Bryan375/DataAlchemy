@@ -1,8 +1,9 @@
 import {FC} from "react";
-import {DataTypesTableProps} from "@/types/DataInference/dataInference.types.ts";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
-import {TypeChangeDialog} from "@/components/organism/DataInference/TypeChangeDialog.tsx";
-import {Column} from "@/models/DataInference/dataInference.models.ts.tsx";
+import {DataTypesTableProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Column} from "../../../models/DataInference/dataInference.models.ts.tsx";
+import {TypeChangeDialog} from "./TypeChangeDialog.tsx";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../ui/table.tsx";
+
 
 export const DataTypesTable: FC<DataTypesTableProps> = ({columnDetails, onTypeChange, onApplyChanges}) => {
     return (

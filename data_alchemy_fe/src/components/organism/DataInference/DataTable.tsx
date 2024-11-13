@@ -1,7 +1,8 @@
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
 import {FC} from "react";
-import {DataTableProps} from "@/types/DataInference/dataInference.types.ts";
-import {Pagination} from "@/components/molecules/DataInference/Pagination.tsx";
+import {DataTableProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Pagination} from "../../molecules/DataInference/Pagination.tsx";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../ui/table.tsx";
+
 
 
 export const DataTable: FC<DataTableProps> = ({ data, columns, pagination, currentPage, onPageChange }) => {

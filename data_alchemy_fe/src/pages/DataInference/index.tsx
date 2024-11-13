@@ -1,20 +1,10 @@
 import {ChangeEvent, FC, useEffect, useState} from 'react';
-import {DataInferenceTemplate} from "@/components/templates/DataInference/DataInferenceTemplate.tsx";
-import {
-    Column,
-    CustomInferredTypes,
-    Data,
-    TaskStatus
-} from "@/models/DataInference/dataInference.models.ts.tsx";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {
-    getDatasetDetails,
-    getTaskStatus,
-    updateColumnType,
-    uploadFile
-} from "@/lib/api.ts";
 import toast from "react-hot-toast";
-import {ApiError, ValidationError} from "@/lib/error.ts";
+import {getDatasetDetails, getTaskStatus, updateColumnType, uploadFile} from "../../lib/api.ts";
+import {Column, CustomInferredTypes, Data, TaskStatus} from "../../models/DataInference/dataInference.models.ts.tsx";
+import {ApiError, ValidationError} from "../../lib/error.ts";
+import {DataInferenceTemplate} from "../../components/templates/DataInference/DataInferenceTemplate.tsx";
 
 export const DataInference: FC = () => {
     const [file, setFile] = useState<File>();

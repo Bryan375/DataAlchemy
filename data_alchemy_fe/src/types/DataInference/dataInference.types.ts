@@ -1,6 +1,6 @@
 import { ChangeEvent } from "react"
-import {Column, DataRow, Data} from "@/models/DataInference/dataInference.models.ts.tsx";
-import {PaginationMeta} from "@/types/common.types.ts";
+import {Column, Data, DataRow} from "../../models/DataInference/dataInference.models.ts.tsx";
+import {PaginationMeta} from "../common.types.ts";
 
 export interface DataInferenceFileUploaderProps {
     file: File | undefined

@@ -1,8 +1,9 @@
 import {FC} from "react";
-import {DataInferenceFileUploaderProps} from "@/types/DataInference/dataInference.types.ts";
-import {Input} from "@/components/ui/input.tsx";
-import {Button} from "@/components/ui/button.tsx";
+
 import {FileUp, RefreshCw} from "lucide-react";
+import {DataInferenceFileUploaderProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Input} from "../../ui/input.tsx";
+import {Button} from "../../ui/button.tsx";
 
 export const FileUploader: FC<DataInferenceFileUploaderProps> = ({onFileSelect, file, isLoading, OnSubmit}) => {
     return (

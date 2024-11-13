@@ -1,6 +1,6 @@
 import {FC} from "react";
-import {DataTypeSelectorProps} from "@/types/DataInference/dataInference.types.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import {DataTypeSelectorProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../../ui/select.tsx";
 
 export const DataTypeSelector: FC<DataTypeSelectorProps> = ({onTypeChange}) => {
     return (

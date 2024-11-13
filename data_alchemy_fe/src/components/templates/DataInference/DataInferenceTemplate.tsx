@@ -1,12 +1,13 @@
 import {FC} from 'react';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card.tsx";
-import {DataInferenceTemplateProps} from "@/types/DataInference/dataInference.types.ts";
-import {FileUploader} from "@/components/molecules/DataInference/FileUploader.tsx";
-import {ProcessingProgress} from "@/components/molecules/DataInference/ProcessingProgress.tsx";
-import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert.tsx";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs.tsx";
-import {DataTypesTable} from "@/components/organism/DataInference/DataTypesTable.tsx";
-import {DataTable} from "@/components/organism/DataInference/DataTable.tsx";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../ui/card.tsx";
+import {DataInferenceTemplateProps} from "../../../types/DataInference/dataInference.types.ts";
+import {FileUploader} from "../../molecules/DataInference/FileUploader.tsx";
+import {ProcessingProgress} from "../../molecules/DataInference/ProcessingProgress.tsx";
+import {Alert, AlertDescription, AlertTitle} from "../../ui/alert.tsx";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "../../ui/tabs.tsx";
+import {DataTypesTable} from "../../organism/DataInference/DataTypesTable.tsx";
+import {DataTable} from "../../organism/DataInference/DataTable.tsx";
+
 
 
 export const DataInferenceTemplate: FC<DataInferenceTemplateProps> = ({

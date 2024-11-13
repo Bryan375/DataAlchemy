@@ -1,5 +1,5 @@
-import {DataInference} from "@/pages/DataInference";
 import {Toaster} from "react-hot-toast";
+import {DataInference} from "./pages/DataInference";
 
 function App() {
     return (

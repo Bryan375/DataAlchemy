@@ -1,7 +1,7 @@
-import {Button} from "@/components/ui/button.tsx";
 import {FC} from "react";
-import {PaginationProps} from "@/types/DataInference/dataInference.types.ts";
 import {ChevronLeft, ChevronRight} from "lucide-react";
+import {Button} from "../../ui/button.tsx";
+import {PaginationProps} from "../../../types/DataInference/dataInference.types.ts";
 
 export const Pagination: FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
     return (

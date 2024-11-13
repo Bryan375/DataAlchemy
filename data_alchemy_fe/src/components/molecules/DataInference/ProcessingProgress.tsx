@@ -1,6 +1,7 @@
 import {FC} from 'react';
-import {ProcessingProgressProps} from "@/types/DataInference/dataInference.types.ts";
-import {Progress} from "@/components/ui/progress.tsx";
+import {ProcessingProgressProps} from "../../../types/DataInference/dataInference.types.ts";
+import {Progress} from "../../ui/progress.tsx";
+
 
 export const ProcessingProgress: FC<ProcessingProgressProps> = ({progress}) => {
     return (
